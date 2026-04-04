@@ -1,0 +1,193 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+canvas{display:block;border-radius:12px;border:1.5px solid #e8e8e8;}
+.btn{padding:7px 16px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid #d0d0d0;background:#fff;color:#2c2c2a;}
+.btn.on{border-color:#185fa5;background:#e6f1fb;color:#185fa5;}
+.row{display:flex;align-items:center;gap:8px;margin:5px 0;flex-wrap:wrap;}
+.lbl{font-size:13px;font-weight:500;color:#2c2c2a;background:#f5f5f5;border:1.5px solid #d0d0d0;border-radius:20px;padding:6px 14px;white-space:nowrap;}
+.val{min-width:60px;text-align:center;font-size:13px;font-weight:500;background:#f5f5f5;border:1.5px solid #d0d0d0;border-radius:20px;padding:5px 10px;}
+.fml{font-size:13px;padding:9px 16px;border-radius:20px;background:#f5f5f5;border:1.5px solid #d0d0d0;color:#2c2c2a;margin:6px 0;font-family:ui-monospace,monospace;line-height:1.9;}
+</style>
+
+<canvas id="cv" style="width:100%;height:62vh;min-height:340px;"></canvas>
+
+<div class="fml">
+  F/L = μ₀·I₁·I₂ / (2π·d) &nbsp;|&nbsp; <span style="color:#1D9E75">même sens → attraction</span> &nbsp;|&nbsp; <span style="color:#BA7517">sens opposés → répulsion</span>
+</div>
+<div class="row">
+  <span class="lbl">Courant I₁</span>
+  <input type="range" id="i1" min="-10" max="10" value="6" step="1" style="flex:1;accent-color:#E24B4A;">
+  <span class="val" id="i1v" style="color:#E24B4A;border-color:#f09595;">+6 A</span>
+</div>
+<div class="row">
+  <span class="lbl">Courant I₂</span>
+  <input type="range" id="i2" min="-10" max="10" value="4" step="1" style="flex:1;accent-color:#7F77DD;">
+  <span class="val" id="i2v" style="color:#7F77DD;border-color:#AFA9EC;">+4 A</span>
+</div>
+<div id="info" style="font-size:12px;padding:7px 14px;border-radius:20px;background:#f5f5f5;border:1.5px solid #d0d0d0;color:#666;margin:4px 0;font-family:ui-monospace,monospace;line-height:1.8;"></div>
+
+<script>
+const cv=document.getElementById('cv');
+let W=0,H=0,animT=0;
+const MU0=4*Math.PI*1e-7;
+
+document.getElementById('i1').addEventListener('input',function(){
+  document.getElementById('i1v').textContent=(parseFloat(this.value)>=0?'+':'')+this.value+' A';
+});
+document.getElementById('i2').addEventListener('input',function(){
+  document.getElementById('i2v').textContent=(parseFloat(this.value)>=0?'+':'')+this.value+' A';
+});
+
+function syncSize(){
+  const r=cv.getBoundingClientRect();
+  const nW=Math.round(r.width)||700,nH=Math.round(r.height)||360;
+  if(nW!==W||nH!==H){W=nW;H=nH;cv.width=W;cv.height=H;}
+}
+
+// Les deux fils sont toujours séparés dans leurs moitiés du canvas
+function getW1x(){return W*0.28;}
+function getW2x(){return W*0.72;}
+function getWy() {return H*0.52;}
+
+function arrowHead(ctx,x,y,dx,dy,size,col){
+  const l=Math.sqrt(dx*dx+dy*dy);if(l<0.001)return;
+  ctx.fillStyle=col;ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(dy/l,dx/l));
+  ctx.beginPath();ctx.moveTo(size,0);ctx.lineTo(-size*.7,-size*.5);ctx.lineTo(-size*.7,size*.5);ctx.closePath();ctx.fill();ctx.restore();
+}
+
+// Cercle analytique exact avec flèches dans le bon sens
+// I > 0 (⊙) → B antihoraire visuel → tangente = (+sinθ, −cosθ)
+// I < 0 (⊗) → B horaire visuel     → tangente = (−sinθ, +cosθ)
+// Rayon max clampé pour ne pas dépasser la moitié du canvas (ne pas envahir l'autre fil)
+function drawCircleLine(ctx,cx,cy,r,I,col,maxR){
+  if(r<4||I===0)return;
+  // Clipper le rayon pour ne pas dépasser maxR
+  const rDraw=Math.min(r,maxR);
+  const sens=I>0?1:-1;
+
+  ctx.beginPath();
+  ctx.arc(cx,cy,rDraw,0,Math.PI*2);
+  ctx.strokeStyle=col+'88';ctx.lineWidth=1.5;ctx.stroke();
+
+  // 3 flèches réparties à 0°, 120°, 240° + offset π/6
+  const nArrows=3;
+  for(let k=0;k<nArrows;k++){
+    const ang=k*2*Math.PI/nArrows+Math.PI/6;
+    const ax=cx+rDraw*Math.cos(ang);
+    const ay=cy+rDraw*Math.sin(ang);
+    const tx= sens*Math.sin(ang);
+    const ty=-sens*Math.cos(ang);
+    arrowHead(ctx,ax,ay,tx,ty,6,col+'cc');
+  }
+}
+
+function draw(){
+  syncSize();animT+=0.02;
+  const I1=parseFloat(document.getElementById('i1').value);
+  const I2=parseFloat(document.getElementById('i2').value);
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+
+  const w1x=getW1x(),w2x=getW2x(),wy=getWy();
+
+  // Rayon de base du fil (visuel)
+  const r1base=14+Math.abs(I1)*1.5;
+  const r2base=14+Math.abs(I2)*1.5;
+
+  // Nombre de cercles = |I| (max 10)
+  const nL1=Math.min(10,Math.max(0,Math.round(Math.abs(I1))));
+  const nL2=Math.min(10,Math.max(0,Math.round(Math.abs(I2))));
+
+  // Espacement régulier entre les cercles : 24px entre chaque
+  const spacing=24;
+
+  // Rayon max = distance jusqu'au bord de la moitié du canvas attribuée à ce fil
+  // Pour fil 1 : droit → jusqu'à (w1x+w2x)/2, gauche → jusqu'à w1x
+  const midX=(w1x+w2x)/2;
+  const maxR1=Math.min(midX-w1x-4, w1x-4, H*0.44); // limité au demi-espace et au canvas
+  const maxR2=Math.min(w2x-midX-4, W-w2x-4, H*0.44);
+
+  // Cercles fil 1
+  for(let li=0;li<nL1;li++){
+    const r=r1base+spacing*(li+1);
+    drawCircleLine(ctx,w1x,wy,r,I1,'#E24B4A',maxR1);
+  }
+
+  // Cercles fil 2
+  for(let li=0;li<nL2;li++){
+    const r=r2base+spacing*(li+1);
+    drawCircleLine(ctx,w2x,wy,r,I2,'#7F77DD',maxR2);
+  }
+
+  // Force par unité de longueur
+  const d=Math.abs(w2x-w1x);
+  const dM=d*0.005;
+  const FperL=(I1!==0&&I2!==0)?MU0*Math.abs(I1*I2)/(2*Math.PI*dM):0;
+  const attract=I1*I2>0;
+  const arrowCol=attract?'#1D9E75':'#BA7517';
+  const maxF=MU0*100/(2*Math.PI*dM);
+  const ratio=Math.min(FperL/(maxF||1),1);
+  const arrowLen=ratio*(midX-w1x)*0.55+10;
+
+  // Flèches de force
+  if(FperL>0){
+    const s1=attract?1:-1,s2=attract?-1:1;
+    ctx.strokeStyle=arrowCol;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(w1x,wy);ctx.lineTo(w1x+s1*arrowLen,wy);ctx.stroke();
+    arrowHead(ctx,w1x+s1*arrowLen,wy,s1,0,10,arrowCol);
+    ctx.beginPath();ctx.moveTo(w2x,wy);ctx.lineTo(w2x+s2*arrowLen,wy);ctx.stroke();
+    arrowHead(ctx,w2x+s2*arrowLen,wy,s2,0,10,arrowCol);
+  }
+
+  // Barre force centrée en haut
+  const barTotalW=Math.min(W*0.5,260);
+  const barY=32,barX=W/2-barTotalW/2;
+  const barFill=barTotalW*ratio;
+  ctx.fillStyle='#eee';ctx.beginPath();ctx.roundRect(barX,barY,barTotalW,10,5);ctx.fill();
+  if(barFill>0){ctx.fillStyle=arrowCol;ctx.beginPath();ctx.roundRect(barX,barY,barFill,10,5);ctx.fill();}
+  ctx.strokeStyle=arrowCol+'88';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(barX,barY,barTotalW,10,5);ctx.stroke();
+  ctx.font='500 13px system-ui';ctx.textAlign='center';ctx.fillStyle=arrowCol;
+  ctx.fillText((attract?'Attraction':'Répulsion')+' — F/L = '+(FperL*1000).toFixed(2)+' mN/m',W/2,barY-6);
+
+  // Distance
+  ctx.strokeStyle='#ddd';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+  ctx.beginPath();ctx.moveTo(w1x,wy+52);ctx.lineTo(w2x,wy+52);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='11px system-ui';ctx.textAlign='center';ctx.fillStyle='#888';
+  ctx.fillText('d = '+(dM*100).toFixed(1)+' cm',(w1x+w2x)/2,wy+65);
+
+  // Fils
+  const wData=[
+    {I:I1,cx:w1x,col:'#E24B4A',bg:'#fee2e2',lbl:'I₁'},
+    {I:I2,cx:w2x,col:'#7F77DD',bg:'#EEEDFE',lbl:'I₂'}
+  ];
+  for(const w of wData){
+    const wr=14+Math.abs(w.I)*1.5;
+    ctx.beginPath();ctx.arc(w.cx,wy,wr+3+Math.sin(animT*3)*1.2,0,Math.PI*2);
+    ctx.fillStyle=w.col+'18';ctx.fill();
+    ctx.beginPath();ctx.arc(w.cx,wy,wr,0,Math.PI*2);
+    ctx.fillStyle=w.bg;ctx.fill();
+    ctx.strokeStyle=w.col;ctx.lineWidth=2.5;ctx.stroke();
+    ctx.fillStyle=w.col;ctx.font='500 17px system-ui';ctx.textAlign='center';
+    ctx.fillText(w.I===0?'0':w.I>0?'⊙':'⊗',w.cx,wy+7);
+    ctx.font='500 11px system-ui';
+    ctx.fillText(w.lbl+' '+(w.I>=0?'+':'')+w.I+' A',w.cx,wy+wr+15);
+  }
+
+  // Légende bas
+  ctx.font='12px system-ui';ctx.textAlign='left';
+  ctx.fillStyle='#888';
+  ctx.fillText('⊙ I sortant → B antihoraire',12,H-28);
+  ctx.fillText('⊗ I entrant → B horaire',12,H-12);
+  ctx.fillStyle='#E24B4A';ctx.fillText('— B(I₁) ∝ |I₁| lignes',W/2-60,H-28);
+  ctx.fillStyle='#7F77DD';ctx.fillText('— B(I₂) ∝ |I₂| lignes',W/2-60,H-12);
+
+  const sens=I1*I2>0?'même sens → attraction':'sens opposés → répulsion';
+  document.getElementById('info').textContent=
+    `I₁=${I1>=0?'+':''}${I1} A, I₂=${I2>=0?'+':''}${I2} A — ${sens} — F/L = μ₀|I₁I₂|/(2πd) = ${(FperL*1000).toFixed(3)} mN/m`;
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+</script>
