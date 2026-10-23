@@ -8,23 +8,39 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap">
 </head>
 <body>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Force entre fils parallèles — corrigé</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:#ffffff;font-family:system-ui,-apple-system,sans-serif;}
-canvas{display:block;border-radius:12px;border:1.5px solid #e8e8e8;touch-action:none;cursor:grab;}
-.btn{padding:8px 20px;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid #d0d0d0;background:#ffffff;color:#2c2c2a;}
-.btn.on{border-color:#185fa5;background:#e6f1fb;color:#185fa5;}
-.row{display:flex;align-items:center;gap:12px;margin:6px 0;flex-wrap:wrap;}
-.lbl{font-size:13px;font-weight:500;color:#2c2c2a;background:#f5f5f5;border:1.5px solid #d0d0d0;border-radius:20px;padding:6px 16px;white-space:nowrap;}
-.val{min-width:58px;text-align:center;font-size:13px;font-weight:500;background:#f5f5f5;border:1.5px solid #d0d0d0;border-radius:20px;padding:6px 10px;}
-.fml{font-size:13px;padding:10px 16px;border-radius:20px;background:#f5f5f5;border:1.5px solid #d0d0d0;color:#2c2c2a;margin:6px 0 10px;font-family:ui-monospace,monospace;line-height:1.9;display:block;width:100%;}
-#info{font-size:13px;padding:10px 16px;border-radius:20px;background:#f5f5f5;border:1.5px solid #d0d0d0;color:#2c2c2a;margin:6px 0;font-family:ui-monospace,monospace;line-height:1.8;}
+*{box-sizing:border-box;margin:0;padding:0}
+/* Deux fils parallèles en 3D : scène plein cadre, lecture chiffrée en haut à gauche, étiquettes HTML projetées. */
+.t-stage{position:relative;width:100%;height:66vh;min-height:440px;background:#fff;border:1px solid var(--rule);border-radius:4px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(12,31,46,.05),0 8px 24px -16px rgba(12,31,46,.18);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.t-stage:active{cursor:grabbing}
+.t-stage canvas{display:block;width:100%!important;height:100%!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+.t-lab{position:absolute;left:0;top:0;font:700 13px Mulish,system-ui,sans-serif;white-space:nowrap;pointer-events:none;padding:2px 6px;border-radius:4px;
+  background:rgba(255,255,255,.92);box-shadow:0 0 0 1px rgba(19,35,58,.06);opacity:0;will-change:transform}
+.t-lab b{font-weight:800}
+.vc{position:relative;display:inline-block;font-style:italic;font-weight:800}
+.vc::after{content:"";position:absolute;left:12%;right:4%;top:-1px;height:1.6px;background:currentColor;border-radius:1px}
+.vc::before{content:"";position:absolute;right:2%;top:-3.4px;border:3.2px solid transparent;border-left:5px solid currentColor;border-right:0}
+.t-hud b,.t-hud .nw{white-space:nowrap}
+.t-hud{position:absolute;left:12px;top:12px;background:rgba(255,255,255,.95);border:1px solid var(--rule);border-radius:6px;padding:9px 13px;
+  font:600 13px/1.5 Mulish,system-ui,sans-serif;color:#13233a;pointer-events:none;max-width:min(380px,calc(100% - 24px))}
+.t-hud .big{font:800 15px/1.35 Mulish,system-ui,sans-serif}
+.t-hud .sub{color:#5b6b7b;font-size:12px;font-weight:600}
+.t-hint{position:absolute;right:12px;bottom:10px;font:600 12px Mulish,system-ui,sans-serif;color:#8a95a3;pointer-events:none;text-align:right;background:rgba(255,255,255,.85);padding:1px 6px;border-radius:3px}
+.t-mode{position:absolute;left:12px;bottom:10px;font:700 12px Mulish,system-ui,sans-serif;color:#185fa5;background:rgba(255,255,255,.9);padding:2px 8px;border-radius:3px;pointer-events:none}
+.t-err{position:absolute;inset:0;display:grid;place-items:center;color:#a32d2d;font:600 14px Mulish,system-ui,sans-serif;padding:20px;text-align:center}
+.val{white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font:600 .82rem Mulish,system-ui,sans-serif;color:#5b6b7b;margin:10px 0 2px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.row input[type=range]{flex:1;min-width:120px}
+.row .val{min-width:62px;text-align:right}
+.row .pill{min-width:180px}
+.btns{flex-wrap:wrap}
+@media (max-width:640px){.t-stage{height:62vh;min-height:420px}.t-hint{display:none}
+  .t-hud{font-size:12px;padding:7px 10px;top:auto;bottom:34px;left:8px;max-width:calc(100% - 16px)}.t-hud .big{font-size:13px}
+  .t-lab{font-size:11.5px;padding:1px 5px}.row{flex-wrap:wrap!important}.row .pill{min-width:0;flex:1 1 100%}.row input[type=range]{flex:1}
+  .t-mode{left:8px;bottom:8px;white-space:nowrap;font-size:11px}}
 </style>
 <style id="sfa-kit">
 /* Kit SFA v2 — calqué sur la maquette des capsules gratuites : fond blanc, cartes à bord fin, encre bleu nuit,
@@ -152,270 +168,375 @@ new MutationObserver(ms=>ms.forEach(m=>{if(m.target.classList&&m.target.classLis
 <section class="sfa-sim">
 
 
-</head>
-<body>
 
-<canvas id="cv" style="width:100%;height:62vh;min-height:340px;"></canvas>
+<div id="stage" class="t-stage" aria-label="Deux fils parallèles en 3D : glisse pour tourner la vue, molette pour zoomer">
+  <div class="t-hud" id="hud"></div>
+  <div class="t-lab" id="lI1" style="color:#a32d2d"></div>
+  <div class="t-lab" id="lI2" style="color:#5b54b8"></div>
+  <div class="t-lab" id="lB1" style="color:#a32d2d"></div>
+  <div class="t-lab" id="lB2" style="color:#5b54b8"></div>
+  <div class="t-lab" id="lF1"></div>
+  <div class="t-lab" id="lF2"></div>
+  <div class="t-lab" id="lD" style="color:#13233a"></div>
+  <div class="t-mode" id="modeTag"></div>
+  <div class="t-hint">Glisse pour tourner la vue · molette pour zoomer</div>
+</div>
 
-<div class="fml">
-  F/L = μ₀·I₁·I₂ / (2π·d) &nbsp;|&nbsp; <span style="color:#1D9E75">même sens → attraction</span> &nbsp;|&nbsp; <span style="color:#BA7517">sens opposés → répulsion</span>
+<div class="legend">
+  <span><i style="background:#E24B4A"></i>Champ du fil 1 (cercles tous les 20 µT)</span>
+  <span><i style="background:#7F77DD"></i>Champ du fil 2</span>
+  <span><i style="background:#1D9E75"></i>Force d'attraction</span>
+  <span><i style="background:#BA7517"></i>Force de répulsion</span>
+</div>
+
+<div class="fml" id="fml"></div>
+
+<div class="row">
+  <span class="pill" style="color:#a32d2d">I₁ &nbsp;courant du fil 1</span>
+  <input type="range" id="i1" min="-20" max="20" value="10" step="1" style="accent-color:#E24B4A;">
+  <span class="val" id="i1v" style="color:#a32d2d">+10 A</span>
 </div>
 <div class="row">
-  <span class="lbl">Courant I₁</span>
-  <input type="range" id="i1" min="-10" max="10" value="6" step="1" style="flex:1;accent-color:#E24B4A;cursor:pointer;">
-  <span class="val" id="i1v" style="color:#E24B4A;border-color:#f09595;background:#fff;">+6 A</span>
+  <span class="pill" style="color:#5b54b8">I₂ &nbsp;courant du fil 2</span>
+  <input type="range" id="i2" min="-20" max="20" value="8" step="1" style="accent-color:#7F77DD;">
+  <span class="val" id="i2v" style="color:#5b54b8">+8 A</span>
 </div>
 <div class="row">
-  <span class="lbl">Courant I₂</span>
-  <input type="range" id="i2" min="-10" max="10" value="4" step="1" style="flex:1;accent-color:#7F77DD;cursor:pointer;">
-  <span class="val" id="i2v" style="color:#7F77DD;border-color:#AFA9EC;background:#fff;">+4 A</span>
+  <span class="pill" style="color:#13233a">d &nbsp;distance entre les fils</span>
+  <input type="range" id="dd" min="2" max="16" value="5" step="0.5" style="accent-color:#13233a;">
+  <span class="val" id="ddv" style="color:#13233a">5,0 cm</span>
 </div>
-<div id="info" style="font-size:12px;padding:7px 14px;border-radius:20px;background:#f5f5f5;border:1.5px solid #d0d0d0;color:#666;margin:4px 0;font-family:ui-monospace,monospace;line-height:1.8;"></div>
+<div class="row">
+  <span class="pill" style="color:#5b6b7b">L &nbsp;longueur des fils</span>
+  <input type="range" id="ll" min="0.1" max="2" value="1" step="0.1" style="accent-color:#8a95a3;">
+  <span class="val" id="llv" style="color:#5b6b7b">1,0 m</span>
+</div>
+<div class="row btns">
+  <button class="btn" id="bInv">Inverser I₂</button>
+  <button class="btn on" id="bField">Lignes de champ</button>
+  <button class="btn on" id="bBend">Déformation des fils</button>
+  <button class="btn" id="bPause">Pause</button>
+</div>
+<div class="row btns">
+  <button class="btn on" id="v3d">Vue 3D</button>
+  <button class="btn" id="vCut">Vue en coupe (le long des fils)</button>
+</div>
 
+<div class="info" id="info"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-const cv = document.getElementById('cv');
-let W = 0, H = 0, animT = 0;
-const MU0 = 4 * Math.PI * 1e-7;
+(()=>{
+const $=id=>document.getElementById(id);
+const box=$('stage');
+if(!window.THREE){box.insertAdjacentHTML('beforeend','<div class="t-err">Impossible de charger la 3D (three.js). Vérifie la connexion internet.</div>');return;}
 
-// Positions normalisées des fils
-const wires = [{ nx: -0.22, ny: 0 }, { nx: 0.22, ny: 0 }];
+// ---------- physique (SI) ----------
+const MU0=4*Math.PI*1e-7;                 // T·m/A
+let I1=10, I2=8, dcm=5, Lm=1;             // A, A, cm, m
+let showField=true, bend=true, paused=false;
+const phys=()=>{const d=dcm/100;
+  return {d, B1:MU0*Math.abs(I1)/(2*Math.PI*d), B2:MU0*Math.abs(I2)/(2*Math.PI*d), FL:MU0*Math.abs(I1*I2)/(2*Math.PI*d)};};
 
-document.getElementById('i1').addEventListener('input', function () {
-  document.getElementById('i1v').textContent = (parseFloat(this.value) >= 0 ? '+' : '') + this.value + ' A';
+// ---------- échelle d'affichage : 1 unité de la scène = 2,5 cm (fixe, ne dépend pas de l'écran) ----------
+const U=2.5;                              // cm par unité
+const HL=3.4, RW=0.085;                   // demi-longueur dessinée des fils, rayon dessiné
+const PLANES=[-2.3,0,2.3];                // plans perpendiculaires où l'on trace les cercles de champ
+const KMAX=5, BSTEP=20e-6;                // cercles là où B = 20, 40, 60 … µT
+
+// ---------- scène ----------
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+box.prepend(renderer.domElement);
+const scene=new THREE.Scene(); scene.background=new THREE.Color('#ffffff');
+const pcam=new THREE.PerspectiveCamera(36,1,0.1,200);
+const ocam=new THREE.OrthographicCamera(-1,1,1,-1,0.1,200);
+scene.add(new THREE.HemisphereLight('#ffffff','#a8b3c0',0.75));
+const sun=new THREE.DirectionalLight('#ffffff',0.7); sun.position.set(5,9,7); scene.add(sun);
+const rim=new THREE.DirectionalLight('#dfe8f5',0.35); rim.position.set(-6,-3,-5); scene.add(rim);
+
+// sol discret, pour la profondeur (caché en vue en coupe)
+const grid=new THREE.GridHelper(18,36,'#d3d9e2','#e8ecf1'); grid.position.y=-4.6; scene.add(grid);
+const floorM=new THREE.Mesh(new THREE.PlaneGeometry(18,18),new THREE.MeshBasicMaterial({color:'#f6f8fa'}));
+floorM.rotation.x=-Math.PI/2; floorM.position.y=-4.61; scene.add(floorM);
+
+// ---------- fils : cylindres métalliques déformables (extrémités fixes) ----------
+const WCOL=['#E24B4A','#7F77DD'], WDARK=['#a32d2d','#5b54b8'];
+const wires=[0,1].map(i=>{
+  const geo=new THREE.CylinderGeometry(RW,RW,2*HL,24,48,true); geo.rotateX(Math.PI/2);   // axe selon z
+  const base=Float32Array.from(geo.attributes.position.array);
+  const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#c98a58',metalness:.55,roughness:.32,emissive:'#3a1d08',emissiveIntensity:.15}));
+  scene.add(mesh);
+  // bague colorée près de chaque extrémité (repère du fil)
+  const rings=[-1,1].map(s=>{const r=new THREE.Mesh(new THREE.CylinderGeometry(RW*1.18,RW*1.18,0.18,24),new THREE.MeshStandardMaterial({color:WCOL[i],roughness:.5}));
+    r.rotation.x=Math.PI/2; r.position.z=s*(HL-0.2); scene.add(r); return r;});
+  // embouts : disque ⊙ / ⊗ (vu depuis +z et depuis −z)
+  const capF=new THREE.Mesh(new THREE.CircleGeometry(0.24,40),new THREE.MeshBasicMaterial({transparent:true}));
+  const capB=new THREE.Mesh(new THREE.CircleGeometry(0.24,40),new THREE.MeshBasicMaterial({transparent:true}));
+  capF.position.z=HL+0.002; capB.position.z=-HL-0.002; capB.rotation.y=Math.PI; capF.renderOrder=capB.renderOrder=3;
+  scene.add(capF,capB);
+  // « perles fléchées » qui défilent dans le sens du courant conventionnel
+  const beadM=new THREE.MeshStandardMaterial({color:WCOL[i],roughness:.45,emissive:WCOL[i],emissiveIntensity:.15});
+  const beads=[]; for(let k=0;k<9;k++){const b=new THREE.Mesh(new THREE.ConeGeometry(RW*1.75,RW*3.6,20),beadM); scene.add(b); beads.push(b);}
+  return {geo,base,mesh,rings,capF,capB,beads,x0:0,delta:0};
 });
-document.getElementById('i2').addEventListener('input', function () {
-  document.getElementById('i2v').textContent = (parseFloat(this.value) >= 0 ? '+' : '') + this.value + ' A';
-});
+// textures des symboles
+function symTex(col,kind){const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');
+  g.fillStyle='#ffffff';g.beginPath();g.arc(128,128,124,0,7);g.fill();
+  g.strokeStyle=col;g.lineWidth=16;g.beginPath();g.arc(128,128,112,0,7);g.stroke();
+  g.fillStyle=col;g.lineCap='round';
+  if(kind==='out'){g.beginPath();g.arc(128,128,30,0,7);g.fill();}
+  else if(kind==='in'){g.lineWidth=20;g.beginPath();g.moveTo(66,66);g.lineTo(190,190);g.moveTo(190,66);g.lineTo(66,190);g.stroke();}
+  const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t;}
+const TEX=[0,1].map(i=>({out:symTex(WDARK[i],'out'),in:symTex(WDARK[i],'in'),none:symTex('#b9c1cb','none')}));
+const wx=(i,z)=>wires[i].x0+wires[i].delta*(1-(z/HL)*(z/HL));     // position x de l'axe du fil i à la cote z
 
-function syncSize() {
-  const r = cv.getBoundingClientRect();
-  const nW = Math.round(r.width) || 700, nH = Math.round(r.height) || 360;
-  const dpr = window.devicePixelRatio || 1;
-  if (nW !== W || nH !== H || cv.width !== nW * dpr) { W = nW; H = nH; cv.width = W * dpr; cv.height = H * dpr; }
-  cv.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+function shapeWire(i){const w=wires[i],p=w.geo.attributes.position,a=p.array,b=w.base;
+  for(let k=0;k<a.length;k+=3){const z=b[k+2];a[k]=b[k]+wx(i,z);}
+  p.needsUpdate=true; w.geo.computeVertexNormals();
+  w.rings.forEach(r=>r.position.x=wx(i,r.position.z)); w.capF.position.x=w.x0; w.capB.position.x=w.x0;}
+
+// ---------- cercles de champ (tores fins) + pointes de flèche qui tournent ----------
+const circ=[0,1].map(i=>PLANES.map((zp,pi)=>{const arr=[];for(let k=1;k<=KMAX;k++){
+  const m=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:WCOL[i],transparent:true,opacity:pi===1?.7:.32,depthWrite:false}));
+  const hm=new THREE.MeshBasicMaterial({color:WDARK[i],transparent:true,opacity:pi===1?.95:.7,depthWrite:false});
+  const heads=[0,1].map(()=>{const h=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.2,14),hm);scene.add(h);return h;});
+  m.position.z=zp; scene.add(m); arr.push({m,heads,r:0,on:false});}
+  return arr;}));
+let circKey='';
+function buildCircles(){
+  for(let i=0;i<2;i++){const I=i?I2:I1;
+    for(let k=1;k<=KMAX;k++){
+      const rcm=MU0*Math.abs(I)/(2*Math.PI*k*BSTEP)*100;        // rayon (cm) où B = k·20 µT
+      const on0=Math.abs(I)>0&&rcm>=0.9&&rcm<=10.5, ru=rcm/U;
+      PLANES.forEach((zp,pi)=>{const c=circ[i][pi][k-1];const on=on0&&(pi===1||k<=3);c.on=on;c.r=ru;
+        if(on){c.m.geometry.dispose();c.m.geometry=new THREE.TorusGeometry(ru,pi===1?0.016:0.012,6,Math.max(48,Math.round(ru*60)));}});
+    }}
 }
 
-function cpx(w) { return W * 0.5 + w.nx * W * (W < 600 ? 0.6 : 0.36); } // écran étroit : fils plus écartés pour ne pas se chevaucher
-function cpy(w) { return H * 0.55 + w.ny * H * 0.3; }
+// ---------- flèches 3D (tige + pointe), toujours visibles ----------
+function arrow(col){const g=new THREE.Group();
+  const m=new THREE.MeshBasicMaterial({color:col,depthTest:false,transparent:true});
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,1,12),m), head=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.3,18),m);
+  g.add(shaft,head); shaft.renderOrder=head.renderOrder=10; g.userData={shaft,head,m}; scene.add(g); return g;}
+const Y=new THREE.Vector3(0,1,0);
+function setArrow(a,o,v){const L=v.length(); a.visible=L>0.04; if(!a.visible)return;
+  const d=v.clone().normalize(), hl=Math.min(0.3,L*0.55);
+  a.position.copy(o); a.quaternion.setFromUnitVectors(Y,d);
+  a.userData.shaft.scale.set(1,Math.max(0.001,L-hl),1); a.userData.shaft.position.set(0,(L-hl)/2,0);
+  a.userData.head.scale.set(1,hl/0.3,1); a.userData.head.position.set(0,L-hl/2,0);}
+const aB1=arrow('#E24B4A'), aB2=arrow('#7F77DD');
+const aF=[[],[]]; [0,1].forEach(i=>{for(let k=0;k<1;k++)aF[i].push(arrow('#1D9E75'));});
+const FZ=[0];                              // flèche de force dessinée au milieu de chaque fil
 
-/**
- * Champ B d'UN fil infini en (px, py), fil situé en (wx, wy), portant le courant I (en z).
- *
- * RÈGLE DE LA MAIN DROITE :
- *   Fil dans la direction +z (courant positif sorti de la page ⊙) :
- *   B tourne dans le sens trigonométrique (antihoraire) autour du fil.
- *   En coordonnées 2D canvas (y vers le bas), le sens anti-horaire est :
- *     - Au-dessus du fil (dy < 0) → B pointe vers la droite (+x)
- *     - À droite du fil (dx > 0)  → B pointe vers le bas (+y)
- *   Soit : B ∝ I · (dy, -dx) / r²
- *   (et non (-dy, dx) qui serait le sens horaire)
- *
- *   Pour un courant négatif (⊗, rentrant dans la page), le sens s'inverse.
- */
-function fieldBsingle(px, py, wx, wy, I) {
-  const dx = px - wx, dy = py - wy;
-  const r2 = dx * dx + dy * dy;
-  if (r2 < 25) return { Bx: 0, By: 0 };
-  // Magnitude : B = μ₀|I| / (2π r), normalisée pour le tracé
-  const B = MU0 * Math.abs(I) / (2 * Math.PI * Math.sqrt(r2) * 0.005);
-  const sign = I > 0 ? 1 : -1;
-  const r = Math.sqrt(r2);
-  // Vecteur tangentiel anti-horaire en coord. canvas : (dy, -dx) / r
-  // ⚠️  EN CANVAS y est VERS LE BAS, donc "anti-horaire visuel" = (dy, -dx)
-  //     Ce qui correspond bien à la règle de la main droite pour I > 0 (⊙)
-  return { Bx: sign * B * (dy / r), By: sign * B * (-dx / r) };
-}
+// cote d (aux extrémités avant, là où les fils sont tenus)
+const coteM=new THREE.LineBasicMaterial({color:'#13233a',depthTest:false,transparent:true});
+const coteG=new THREE.BufferGeometry(); coteG.setAttribute('position',new THREE.BufferAttribute(new Float32Array(18),3));
+const cote=new THREE.LineSegments(coteG,coteM); cote.renderOrder=9; cote.frustumCulled=false; scene.add(cote);
 
-// Champ total des deux fils
-function totalField(px, py, I1, I2) {
-  const { Bx: b1x, By: b1y } = fieldBsingle(px, py, cpx(wires[0]), cpy(wires[0]), I1);
-  const { Bx: b2x, By: b2y } = fieldBsingle(px, py, cpx(wires[1]), cpy(wires[1]), I2);
-  return { Bx: b1x + b2x, By: b1y + b2y };
-}
+// ---------- caméra : orbite (perspective) ; vue en coupe = orthographique le long des fils ----------
+const V3D={th:0.95,ph:0.98,r:14}, VCUT={th:0,ph:Math.PI/2,r:12.5};
+let orb={...V3D}, goal=null, cut=false;
+function setView(k){if(k==='cut'){goal={...VCUT};}else{cut=false;goal={...V3D};}
+  $('v3d').classList.toggle('on',k!=='cut');$('vCut').classList.toggle('on',k==='cut');}
+$('v3d').onclick=()=>setView('3d'); $('vCut').onclick=()=>setView('cut');
+let drag=null;
+box.addEventListener('pointerdown',e=>{box.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,moved:false};});
+box.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!drag.moved&&Math.hypot(dx,dy)<3)return;
+  if(!drag.moved){drag.moved=true;goal=null;if(cut){cut=false;$('vCut').classList.remove('on');}$('v3d').classList.remove('on');}
+  orb.th-=dx*0.008;orb.ph=Math.max(0.12,Math.min(2.6,orb.ph-dy*0.008));drag.x=e.clientX;drag.y=e.clientY;});
+const end=()=>drag=null; box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+box.addEventListener('wheel',e=>{e.preventDefault();orb.r=Math.max(9,Math.min(40,orb.r*Math.exp(e.deltaY*0.0012)));},{passive:false});
+const tgt=new THREE.Vector3(0,-0.15,0);
+let cam=pcam;
+function placeCam(){const asp=pcam.aspect, k=Math.max(1,1.02/asp); tgt.y=box.clientWidth<=640?-1.5:-0.15;
+  // cadrage : les deux fils et leurs premiers cercles restent visibles même quand d est grand
+  const need=(dcm/U/2+1.6)/(Math.tan(pcam.fov*Math.PI/360)*asp*0.92), r=Math.max(orb.r*k,need);
+  pcam.position.set(tgt.x+r*Math.sin(orb.ph)*Math.sin(orb.th),tgt.y+r*Math.cos(orb.ph),tgt.z+r*Math.sin(orb.ph)*Math.cos(orb.th));
+  pcam.up.set(0,1,0); pcam.lookAt(tgt);
+  if(cut){const hh=r*Math.tan(pcam.fov*Math.PI/360);
+    ocam.left=-hh*asp;ocam.right=hh*asp;ocam.top=hh;ocam.bottom=-hh;ocam.position.copy(pcam.position);ocam.up.set(0,1,0);ocam.lookAt(tgt);ocam.updateProjectionMatrix();cam=ocam;}
+  else cam=pcam;}
 
-// Texte sur fond blanc semi-opaque (lisible par-dessus les lignes de champ)
-function bgText(ctx, t, x, y, col) {
-  ctx.lineWidth = 4.5; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(255,255,255,0.94)'; ctx.strokeText(t, x, y);
-  ctx.fillStyle = col; ctx.fillText(t, x, y);
-}
+// ---------- contrôles ----------
+const fx=(v,n=1)=>v.toFixed(n).replace('.',',');
+const sg=v=>(v>0?'+':v<0?'−':'')+Math.abs(v);
+function fmtI(v){return sg(v)+' A';}
+let dirty=true;
+$('i1').addEventListener('input',e=>{I1=+e.target.value;$('i1v').textContent=fmtI(I1);dirty=true;});
+$('i2').addEventListener('input',e=>{I2=+e.target.value;$('i2v').textContent=fmtI(I2);dirty=true;});
+$('dd').addEventListener('input',e=>{dcm=+e.target.value;$('ddv').textContent=fx(dcm)+' cm';dirty=true;});
+$('ll').addEventListener('input',e=>{Lm=+e.target.value;$('llv').textContent=fx(Lm)+' m';});
+$('bInv').onclick=()=>{I2=-I2;$('i2').value=I2;$('i2').dispatchEvent(new Event('input',{bubbles:true}));};
+$('bField').onclick=()=>{showField=!showField;$('bField').classList.toggle('on',showField);};
+$('bBend').onclick=()=>{bend=!bend;$('bBend').classList.toggle('on',bend);};
+$('bPause').onclick=()=>{paused=!paused;$('bPause').textContent=paused?'Reprendre':'Pause';$('bPause').classList.toggle('on',paused);};
 
-function arrowHead(ctx, x, y, dx, dy, size, col) {
-  const l = Math.sqrt(dx * dx + dy * dy); if (l < 0.001) return;
-  ctx.fillStyle = col; ctx.save(); ctx.translate(x, y);
-  ctx.rotate(Math.atan2(dy / l, dx / l));
-  ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(-size * .7, -size * .5); ctx.lineTo(-size * .7, size * .5);
-  ctx.closePath(); ctx.fill(); ctx.restore();
-}
+// ---------- formats ----------
+function fB(B){const u=B*1e6;return (u<10?fx(u,1):String(Math.round(u)))+' µT';}
+function fN(F){const u=F*1e6;if(u===0)return '0';if(u<10)return fx(u,2);if(u<100)return fx(u,1);
+  return String(Math.round(u)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
 
-/**
- * Trace une ligne de champ depuis le point de départ (sx, sy)
- * en suivant le champ TOTAL (intégration Euler).
- * Le sens de parcours est celui du champ B au point de départ.
- */
-function traceLine(ctx, sx, sy, col, I1, I2, ph) {
-  let x = sx, y = sy;
-  const ox = x, oy = y;
-  ctx.beginPath(); ctx.moveTo(x, y);
-  ctx.strokeStyle = col + '80'; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  const pts = [{ x, y }];
-  // direction unitaire du champ ; intégration Runge-Kutta 4 : les lignes se referment proprement (pas de spirale numérique)
-  const dir = (px, py) => { const f = totalField(px, py, I1, I2); const n = Math.hypot(f.Bx, f.By); return n < 1e-12 ? null : { x: f.Bx / n, y: f.By / n }; };
-  for (let s = 0; s < 1200; s++) {
-    const step = 4;
-    const k1 = dir(x, y); if (!k1) break;
-    const k2 = dir(x + k1.x * step / 2, y + k1.y * step / 2); if (!k2) break;
-    const k3 = dir(x + k2.x * step / 2, y + k2.y * step / 2); if (!k3) break;
-    const k4 = dir(x + k3.x * step, y + k3.y * step); if (!k4) break;
-    const ddx = (k1.x + 2 * k2.x + 2 * k3.x + k4.x) / 6, ddy = (k1.y + 2 * k2.y + 2 * k3.y + k4.y) / 6;
-    const Bx = ddx, By = ddy, Bn = Math.hypot(ddx, ddy) || 1;
-    x += step * Bx / Bn;
-    y += step * By / Bn;
-    if (x < -10 || x > W + 10 || y < -10 || y > H + 10) break;
-    ctx.lineTo(x, y);
-    pts.push({ x, y, dx: step * Bx / Bn, dy: step * By / Bn });
-    if (s > 30 && Math.sqrt((x - ox) ** 2 + (y - oy) ** 2) < 5) { ctx.lineTo(ox, oy); break; }
+// ---------- étiquettes : placement puis anti-chevauchement ----------
+const LABS=['lI1','lI2','lB1','lB2','lF1','lF2','lD'].map(id=>({id,el:$(id),x:0,y:0,w:0,h:0,on:false,txt:''}));
+const L=Object.fromEntries(LABS.map(l=>[l.id,l]));
+function proj(v){const p=v.clone().project(cam);return {x:(p.x+1)/2*box.clientWidth,y:(1-p.y)/2*box.clientHeight,ok:p.z<1&&p.z>-1};}
+function setTxt(l,h){if(l.txt!==h){l.el.innerHTML=h;l.txt=h;l.w=0;}}
+// place l'étiquette au-delà de la pointe d'une flèche (dans le prolongement de la flèche, à l'écran)
+function atTip(l,o,v){const a=proj(o),b=proj(o.clone().add(v));let ux=b.x-a.x,uy=b.y-a.y;const n=Math.hypot(ux,uy);
+  if(n<1){ux=0;uy=-1;}else{ux/=n;uy/=n;}
+  const w=l.w/2+6,h=l.h/2+5,t=Math.min(Math.abs(ux)>1e-3?w/Math.abs(ux):1e9,Math.abs(uy)>1e-3?h/Math.abs(uy):1e9);
+  l.x=b.x+ux*t;l.y=b.y+uy*t;l.on=b.ok;}
+function resolve(){
+  const W=box.clientWidth,H=box.clientHeight,hud=$('hud'),hr={x:hud.offsetLeft,y:hud.offsetTop,w:hud.offsetWidth,h:hud.offsetHeight};
+  const act=LABS.filter(l=>l.on);
+  act.forEach(l=>{if(!l.w){l.w=l.el.offsetWidth;l.h=l.el.offsetHeight;}});
+  for(let it=0;it<14;it++){
+    for(let a=0;a<act.length;a++)for(let b=a+1;b<act.length;b++){const p=act[a],q=act[b];
+      const ox=(p.w+q.w)/2+4-Math.abs(p.x-q.x), oy=(p.h+q.h)/2+3-Math.abs(p.y-q.y);
+      if(ox>0&&oy>0){const s=(p.y<q.y||(p.y===q.y&&a<b))?-1:1;
+        if(ox<oy*0.7){const sx=p.x<q.x?-1:1;p.x+=sx*ox/2;q.x-=sx*ox/2;}else{p.y+=s*oy/2;q.y-=s*oy/2;}}}
+    act.forEach(l=>{ // le panneau de lecture est un obstacle fixe
+      const ox=Math.min(l.x+l.w/2,hr.x+hr.w)-Math.max(l.x-l.w/2,hr.x)+4, oy=Math.min(l.y+l.h/2,hr.y+hr.h)-Math.max(l.y-l.h/2,hr.y)+4;
+      if(ox>4&&oy>4){const below=hr.y+hr.h+l.h/2+4, above=hr.y-l.h/2-4, right=hr.x+hr.w+l.w/2+4;
+        const c=[[Math.abs(below-l.y),()=>l.y=below],[hr.y>40?Math.abs(above-l.y):1e9,()=>l.y=above],[Math.abs(right-l.x),()=>l.x=right]].sort((u,v)=>u[0]-v[0]);c[0][1]();}
+      l.x=Math.max(l.w/2+4,Math.min(W-l.w/2-4,l.x)); l.y=Math.max(l.h/2+4,Math.min(H-l.h/2-4,l.y));});
   }
-  ctx.stroke();
-  for (const f0 of [0.12, 0.45, 0.78]) {
-    const frac = (f0 + (ph || 0)) % 1;   // pointes décalées d'une ligne à l'autre : pas de paquets de flèches alignées
-    const idx = Math.floor(frac * pts.length);
-    if (!pts[idx] || !pts[idx].dx) continue;
-    arrowHead(ctx, pts[idx].x, pts[idx].y, pts[idx].dx, pts[idx].dy, 7, col + 'd0');
-  }
+  LABS.forEach(l=>{l.el.style.opacity=l.on?1:0; if(l.on)l.el.style.transform=`translate(${l.x-l.w/2}px,${l.y-l.h/2}px)`;});
 }
 
-let I1 = 6, I2 = 4;
+function size(){const w=box.clientWidth,h=box.clientHeight;renderer.setSize(w,h,false);pcam.aspect=w/h;pcam.updateProjectionMatrix();}
+new ResizeObserver(size).observe(box); size();
 
-function draw() {
-  syncSize(); animT += 0.02;
-  I1 = parseFloat(document.getElementById('i1').value);
-  I2 = parseFloat(document.getElementById('i2').value);
+// ---------- boucle ----------
+let tPrev=performance.now(), tA=0, flowPh=0;
+const beadPh=[0,0];
+function loop(t){
+  const dt=Math.min(0.05,(t-tPrev)/1000); tPrev=t;
+  if(!paused){tA+=dt;}
+  const P=phys(), s=Math.sign(I1*I2), attract=s>0, FL=P.FL;
+  const dV=dcm/U;                           // distance dessinée (unités de scène), proportionnelle à d
+  if(dirty){buildCircles();dirty=false;}
 
-  const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  // déformation (exagérée) : flèche au milieu, extrémités tenues ; elle grandit avec F/L
+  const gap=dV-2*RW, mag=FL>0?Math.min(1,Math.sqrt(FL/2.5e-3)):0;
+  const dmax=attract?Math.min(0.32*gap,0.55):0.55;
+  const tgtDelta=bend&&FL>0?dmax*mag:0;
+  wires[0].x0=-dV/2; wires[1].x0=dV/2;
+  const kB=paused?0:Math.min(1,dt*3);
+  wires[0].delta+=( s*tgtDelta-wires[0].delta)*kB;          // fil 1 : +x s'il est attiré
+  wires[1].delta+=(-s*tgtDelta-wires[1].delta)*kB;
+  if(Math.abs(wires[0].delta)>0.3*gap&&attract){wires[0].delta=0.3*gap;wires[1].delta=-0.3*gap;}
+  shapeWire(0); shapeWire(1);
 
-  const cx1 = cpx(wires[0]), cy1 = cpy(wires[0]);
-  const cx2 = cpx(wires[1]), cy2 = cpy(wires[1]);
+  // embouts ⊙ / ⊗ : vu depuis +z, un courant +z sort de l'écran (⊙) ; vu depuis −z il y rentre (⊗)
+  [I1,I2].forEach((I,i)=>{const w=wires[i],T=TEX[i];
+    w.capF.material.map=I>0?T.out:I<0?T.in:T.none; w.capB.material.map=I>0?T.in:I<0?T.out:T.none;
+    w.capF.material.needsUpdate=w.capB.material.needsUpdate=true;
+    // perles : vitesse ∝ I, dans le sens du courant
+    if(!paused)beadPh[i]+=dt*0.09*I;
+    const n=w.beads.length,span=2*HL-0.7;
+    w.beads.forEach((b,k)=>{b.visible=I!==0&&!cut;let u=((k/n+beadPh[i]/span)%1+1)%1; const z=-span/2+u*span;
+      b.position.set(wx(i,z),0,z); b.rotation.set(I>0?Math.PI/2:-Math.PI/2,0,0);
+      const fade=Math.min(1,(span/2-Math.abs(z))/0.5); b.scale.setScalar(Math.max(0.01,fade));});
+  });
 
-  /**
-   * DENSITÉ DE LIGNES : nL lignes réparties UNIFORMÉMENT sur 360° autour du fil.
-   * On utilise nL = min(10, |I|), avec des angles uniformément espacés.
-   * Les rayons de départ sont fixes (assez proches du fil pour rester dans la zone).
-   * 
-   * Pourquoi angles uniformément répartis ?
-   *   → Une densité de lignes uniforme en angle représente correctement
-   *     un champ isotrope autour d'un fil infini (B ne dépend que de r).
-   */
-  const nL1 = Math.min(10, Math.max(0, Math.round(Math.abs(I1))));
-  const nL2 = Math.min(10, Math.max(0, Math.round(Math.abs(I2))));
+  // cercles de champ : centrés sur l'axe (éventuellement courbé) du fil, sens donné par la main droite
+  if(!paused)flowPh+=dt*0.55;
+  [I1,I2].forEach((I,i)=>{const sI=Math.sign(I);
+    circ[i].forEach((arr,pi)=>{const zp=PLANES[pi];arr.forEach((c,k)=>{
+      const vis=showField&&c.on&&(!cut||pi===1);
+      c.m.visible=vis; c.m.position.x=wx(i,zp);
+      c.heads.forEach((h,j)=>{h.visible=vis&&(pi===1||j===0); if(!h.visible)return;
+        const ph=sI*flowPh/(0.6+c.r*0.5)+j*Math.PI+k*0.9+pi*0.5+i*0.4;
+        const cx=wx(i,zp);h.position.set(cx+c.r*Math.cos(ph),c.r*Math.sin(ph),zp);
+        h.quaternion.setFromUnitVectors(Y,new THREE.Vector3(-Math.sin(ph)*sI,Math.cos(ph)*sI,0));});});});});
 
-  // Départs des lignes : nL lignes (∝ |I|) semées sur l'axe des fils, côté extérieur, à des rayons en progression
-  // géométrique (espacement ∝ r, comme 1/B) : les lignes fermées remplissent la scène au lieu de se serrer contre le fil.
-  const r0 = 30, rMax = Math.max(r0 * 1.5, Math.min(W * 0.5 - Math.abs(cx1 - W / 2) - 14, H * 0.36));
-  const seeds = (n, cx, cy, side) => { const q = Math.pow(rMax / r0, 1 / Math.max(2, Math.max(nL1, nL2) - 1));   // le fil le plus intense remplit la scène, l'autre garde la même progression
-    for (let li = 0; li < n; li++) { const r = r0 * Math.pow(q, li); traceLine(ctx, cx + side * r, cy + (li % 2 ? 0.5 : -0.5), cx === cx1 ? '#E24B4A' : '#7F77DD', I1, I2, li * 0.11 + (side > 0 ? 0.05 : 0)); } };
-  seeds(nL1, cx1, cy1, -1);
-  seeds(nL2, cx2, cy2, 1);
-  // Distance entre fils
-  const dx = cx2 - cx1, dy = cy2 - cy1;
-  const d = Math.sqrt(dx * dx + dy * dy);
-  const dM = d * 0.005; // en mètres (1 pixel = 0.005 m)
+  // champ d'un fil au niveau de l'autre : B = μ₀ I/(2π d), direction ẑ×r̂ (main droite) pour I>0
+  const Z=new THREE.Vector3(0,0,1);
+  const p1=new THREE.Vector3(wx(0,0),0,0), p2=new THREE.Vector3(wx(1,0),0,0);
+  const r12=new THREE.Vector3(1,0,0);                        // de 1 vers 2
+  const dirB1=Z.clone().cross(r12).multiplyScalar(Math.sign(I1));          // B₁ au fil 2
+  const dirB2=Z.clone().cross(r12.clone().negate()).multiplyScalar(Math.sign(I2)); // B₂ au fil 1
+  const lenB=B=>B>0?0.35+1.25*Math.sqrt(Math.min(1,B/200e-6)):0;
+  const vB1=dirB1.clone().multiplyScalar(lenB(P.B1)), vB2=dirB2.clone().multiplyScalar(lenB(P.B2));
+  setArrow(aB1,p2,vB1); setArrow(aB2,p1,vB2);
+  // force de Laplace sur chaque fil : F = I L ẑ × B
+  const dF2=Z.clone().cross(dirB1).multiplyScalar(Math.sign(I2));   // sur le fil 2
+  const dF1=Z.clone().cross(dirB2).multiplyScalar(Math.sign(I1));   // sur le fil 1
+  let lenF=FL>0?0.45+1.3*Math.sqrt(Math.min(1,FL/4e-3)):0;
+  // en attraction, les deux flèches se font face : leur pointe s'arrête avant le milieu de l'espace entre les fils
+  if(attract&&lenF>0)lenF=Math.max(0.12,Math.min(lenF,0.46*gap-0.02));
+  const off=RW+0.02;
+  const col=attract?'#1D9E75':'#BA7517';
+  [[0,dF1],[1,dF2]].forEach(([i,dv])=>aF[i].forEach((a,k)=>{const z=FZ[k];
+    a.userData.m.color.set(col); a.userData.m.opacity=1;
+    setArrow(a,new THREE.Vector3(wx(i,z),0,z).add(dv.clone().multiplyScalar(off)),dv.clone().multiplyScalar(lenF));
+    if(lenF<=0)a.visible=false;}));
 
-  // Force par unité de longueur
-  const FperL = (I1 !== 0 && I2 !== 0) ? MU0 * Math.abs(I1 * I2) / (2 * Math.PI * dM) : 0;
-  const attract = I1 * I2 > 0;
-  const arrowCol = attract ? '#1D9E75' : '#BA7517';
-  const maxF = MU0 * 100 / (2 * Math.PI * dM);
-  const ratio = Math.min(FperL / maxF, 1);
-  const arrowLen = ratio * Math.min(W, H) * 0.18 + 12;
+  // cote d entre les extrémités avant (fixes)
+  { const a=coteG.attributes.position.array, yC=-0.62, z=HL+0.02, x1=-dV/2, x2=dV/2, tk=0.14;
+    a.set([x1,yC,z,x2,yC,z, x1,yC-tk,z,x1,yC+tk,z, x2,yC-tk,z,x2,yC+tk,z]); coteG.attributes.position.needsUpdate=true; }
 
-  // Flèches de force sur les fils
-  if (FperL > 0 && d > 0) {
-    const ux = (cx2 - cx1) / d, uy = (cy2 - cy1) / d;
-    const s1 = attract ? 1 : -1, s2 = attract ? -1 : 1;
-    // flèches partant du bord du fil (visibles en entier), avec halo blanc pour ressortir sur les lignes de champ
-    const e1 = 16 + Math.abs(I1) * 1.4 + 3, e2 = 16 + Math.abs(I2) * 1.4 + 3;
-    const fArrow = (x0, y0, sx, sy, e) => {
-      const ax = x0 + ux * sx * e, ay = y0 + uy * sx * e, bx = ax + ux * sx * arrowLen, by = ay + uy * sx * arrowLen;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx - ux * sx * 8, by - uy * sx * 8); ctx.stroke();
-      ctx.strokeStyle = arrowCol; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx - ux * sx * 8, by - uy * sx * 8); ctx.stroke();
-      arrowHead(ctx, bx, by, ux * sx, uy * sx, 13, arrowCol);
-    };
-    fArrow(cx1, cy1, s1, 0, e1); fArrow(cx2, cy2, s2, 0, e2);
-  }
+  // caméra
+  if(goal){const kc=1-Math.exp(-dt*7);['th','ph','r'].forEach(k=>orb[k]+=(goal[k]-orb[k])*kc);
+    if(Math.abs(goal.ph-orb.ph)<0.01&&Math.abs(goal.th-orb.th)<0.01&&Math.abs(goal.r-orb.r)<0.1){Object.assign(orb,goal);if(goal.ph===VCUT.ph&&goal.th===VCUT.th)cut=true;goal=null;}}
+  placeCam();
+  grid.visible=floorM.visible=!cut&&orb.ph<1.5;
 
-  // Barre d'intensité force
-  const barTotalW = Math.min(W * 0.55, 280);
-  const barH = 10;
-  const barX = W / 2 - barTotalW / 2;
-  const barY = 28;
-  const barFill = barTotalW * ratio;
+  // ---------- étiquettes ----------
+  const v=(I)=>'<i class="vc">'+I+'</i>';
+  setTxt(L.lI1,'I₁ = '+fmtI(I1)+(cut?(I1>0?' ⊙':I1<0?' ⊗':''):''));
+  setTxt(L.lI2,'I₂ = '+fmtI(I2)+(cut?(I2>0?' ⊙':I2<0?' ⊗':''):''));
+  setTxt(L.lB1,v('B')+'₁ = '+fB(P.B1)); setTxt(L.lB2,v('B')+'₂ = '+fB(P.B2));
+  setTxt(L.lF1,v('F')+'₁'); setTxt(L.lF2,v('F')+'₂');
+  setTxt(L.lD,'d = '+fx(dcm)+' cm');
+  L.lF1.el.style.color=L.lF2.el.style.color=attract?'#0F6E56':'#8a5410';
+  // I : à côté de l'embout avant, du côté extérieur
+  [[L.lI1,0,-1],[L.lI2,1,1]].forEach(([l,i,sd])=>{const q=proj(new THREE.Vector3(wires[i].x0,0,HL));
+    if(!l.w){l.w=l.el.offsetWidth;l.h=l.el.offsetHeight;}
+    l.x=q.x+sd*(cut?l.w/2+4:l.w/2+16); l.y=cut?q.y+l.h/2+18:q.y-12; l.on=q.ok;});   // en coupe : sous le fil, pour laisser l'axe libre aux flèches F
+  if(aB1.visible)atTip(L.lB1,p2,vB1); else L.lB1.on=false;
+  if(aB2.visible)atTip(L.lB2,p1,vB2); else L.lB2.on=false;
+  if(lenF>0){atTip(L.lF1,new THREE.Vector3(wx(0,0),0,0).add(dF1.clone().multiplyScalar(off)),dF1.clone().multiplyScalar(lenF));
+    atTip(L.lF2,new THREE.Vector3(wx(1,0),0,0).add(dF2.clone().multiplyScalar(off)),dF2.clone().multiplyScalar(lenF));}
+  else L.lF1.on=L.lF2.on=false;
+  // en attraction, les deux flèches se font face dans l'espace entre les fils : étiquette au-dessus (F₂) / en dessous (F₁) du milieu de la flèche
+  if(lenF>0&&attract){[[L.lF1,0,dF1,1],[L.lF2,1,dF2,-1]].forEach(([l,i,dv,sd])=>{
+    const m=proj(new THREE.Vector3(wx(i,0),0,0).add(dv.clone().multiplyScalar(off+lenF/2)));
+    l.x=m.x; l.y=m.y+sd*(l.h/2+10);});}
+  { const q=proj(new THREE.Vector3(0,-0.62,HL+0.02)); const l=L.lD; if(!l.w){l.w=l.el.offsetWidth;l.h=l.el.offsetHeight;}
+    l.x=q.x; l.y=q.y+l.h/2+6; l.on=q.ok; }
+  resolve();
 
-  ctx.fillStyle = '#e9edf2'; ctx.beginPath(); ctx.roundRect(barX, barY, barTotalW, barH, 5); ctx.fill();
-  if (barFill > 0) {
-    ctx.fillStyle = arrowCol; ctx.beginPath(); ctx.roundRect(barX, barY, barFill, barH, 5); ctx.fill();
-  }
-  
-  ctx.font = '800 13px Mulish,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = arrowCol;
-  bgText(ctx, (FperL === 0 ? 'Aucune force' : (attract ? 'Attraction' : 'Répulsion')) + ' — F/L = ' + (FperL * 1000).toFixed(2) + ' mN/m', W / 2, barY - 8, attract ? '#0F6E56' : '#8a5410');
+  // ---------- lecture ----------
+  const relTxt=FL===0?'<span style="color:#5b6b7b">Aucune force</span> (un courant est nul)'
+    :attract?'<span style="color:#0F6E56">Attraction</span> : courants de même sens':'<span style="color:#8a5410">Répulsion</span> : courants de sens opposés';
+  $('hud').innerHTML=`<div class="big">${relTxt}</div>
+    <div>F/L = μ₀·|I₁·I₂| / (2π·d) = <b style="color:${FL===0?'#5b6b7b':attract?'#0F6E56':'#8a5410'}">${fN(FL)} µN/m</b></div>
+    <div class="sub"><span class="nw">Sur L = ${fx(Lm)} m : F = ${fN(FL*Lm)} µN</span> · <span class="nw">B₁ au fil 2 = ${fB(P.B1)}</span> · <span class="nw">B₂ au fil 1 = ${fB(P.B2)}</span></div>`;
+  $('modeTag').textContent=cut?(box.clientWidth<=640?'Coupe : ⊙ vers toi · ⊗ s’éloigne':'Vue en coupe : ⊙ courant vers toi, ⊗ courant qui s’éloigne'):'Vue 3D · déformation des fils exagérée';
+  $('modeTag').style.display=(!cut&&!bend)?'none':'';
+  $('info').innerHTML=`I₁ = ${fmtI(I1)} &nbsp;|&nbsp; I₂ = ${fmtI(I2)} &nbsp;|&nbsp; d = ${fx(dcm)} cm &nbsp;|&nbsp; `+
+    `<b style="color:#a32d2d">B₁</b> = μ₀·|I₁|/(2π·d) = ${fB(P.B1)} &nbsp;|&nbsp; <b style="color:#5b54b8">B₂</b> = ${fB(P.B2)} &nbsp;|&nbsp; `+
+    `<b style="color:${attract?'#0F6E56':'#8a5410'}">F/L = |I₂|·B₁ = ${fN(FL)} µN/m</b> &nbsp;|&nbsp; <span style="white-space:nowrap">F = (F/L)·L = ${fN(FL*Lm)} µN</span>`;
 
-  // Distance label
-  { const yd = (cy1 + cy2) / 2 + 62;   // cote d entre les deux fils
-    ctx.strokeStyle = '#ffffffe0'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(cx1, yd); ctx.lineTo(cx2, yd); ctx.stroke();
-    ctx.strokeStyle = '#13233a'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(cx1, yd); ctx.lineTo(cx2, yd); ctx.moveTo(cx1, yd - 6); ctx.lineTo(cx1, yd + 6); ctx.moveTo(cx2, yd - 6); ctx.lineTo(cx2, yd + 6); ctx.stroke();
-    ctx.font = '700 13px Mulish,system-ui,sans-serif'; ctx.textAlign = 'center';
-    bgText(ctx, 'd = ' + (dM * 100).toFixed(1) + ' cm', (cx1 + cx2) / 2, yd + 20, '#13233a'); }
-
-  // Fils
-  const wData = [
-    { I: I1, cx: cx1, cy: cy1, col: '#E24B4A', bg: '#fee2e2', lbl: 'I₁' },
-    { I: I2, cx: cx2, cy: cy2, col: '#7F77DD', bg: '#EEEDFE', lbl: 'I₂' }
-  ];
-  for (const w of wData) {
-    const r2 = 16 + Math.abs(w.I) * 1.4;
-    ctx.beginPath(); ctx.arc(w.cx, w.cy, r2 + 3 + Math.sin(animT * 3) * 1.2, 0, Math.PI * 2);
-    ctx.fillStyle = w.col + '18'; ctx.fill();
-    ctx.save(); ctx.shadowColor = 'rgba(19,35,58,.18)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
-    { const g = ctx.createRadialGradient(w.cx - r2 * .35, w.cy - r2 * .4, r2 * .1, w.cx, w.cy, r2); g.addColorStop(0, '#ffffff'); g.addColorStop(1, w.bg); ctx.fillStyle = g; }
-    ctx.beginPath(); ctx.arc(w.cx, w.cy, r2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    ctx.strokeStyle = w.col; ctx.lineWidth = 2.5; ctx.stroke();
-    // symbole du courant dessiné (⊙ sortant, ⊗ entrant)
-    const sr = Math.min(9, r2 * 0.45);
-    ctx.strokeStyle = w.col; ctx.fillStyle = w.col; ctx.lineWidth = 2; ctx.lineCap = 'round';
-    if (w.I > 0) { ctx.beginPath(); ctx.arc(w.cx, w.cy, sr, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(w.cx, w.cy, 2.6, 0, 7); ctx.fill(); }
-    else if (w.I < 0) { ctx.beginPath(); ctx.arc(w.cx, w.cy, sr, 0, 7); ctx.stroke(); const q = sr * 0.62; ctx.beginPath(); ctx.moveTo(w.cx - q, w.cy - q); ctx.lineTo(w.cx + q, w.cy + q); ctx.moveTo(w.cx + q, w.cy - q); ctx.lineTo(w.cx - q, w.cy + q); ctx.stroke(); }
-    else { ctx.font = '800 14px Mulish,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('0', w.cx, w.cy + 5); }
-    ctx.font = '800 13px Mulish,system-ui,sans-serif'; ctx.textAlign = 'center';
-    bgText(ctx, w.lbl + ' = ' + (w.I > 0 ? '+' : '') + w.I + ' A', w.cx, w.cy - r2 - 12, w.col === '#E24B4A' ? '#a32d2d' : '#5b54b8');
-  }
-
-  // Légende bas
-  { ctx.font = '700 12px Mulish,system-ui,sans-serif'; ctx.textAlign = 'left';
-    const t1 = 'B dû à I₁ (nb de lignes ∝ |I₁|)', t2 = 'B dû à I₂ (nb de lignes ∝ |I₂|)';
-    const lw = Math.max(ctx.measureText(t1).width, ctx.measureText(t2).width) + 52, lh = 50, lx = 12.5, ly = H - lh - 12.5;
-    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#e3e7ed'; ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect(lx, ly, lw, lh, 8); ctx.fill(); ctx.stroke();
-    [[t1, '#E24B4A', '#a32d2d', ly + 17], [t2, '#7F77DD', '#5b54b8', ly + 34]].forEach(([t, c, c2, y]) => {
-      ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(lx + 12, y); ctx.lineTo(lx + 34, y); ctx.stroke();
-      arrowHead(ctx, lx + 27, y, 1, 0, 7, c);
-      ctx.fillStyle = c2; ctx.textBaseline = 'middle'; ctx.fillText(t, lx + 42, y); ctx.textBaseline = 'alphabetic'; }); }
-
-  // Info bas
-  const sign = I1 * I2 > 0 ? 'même sens → attraction' : 'sens opposés → répulsion';
-  document.getElementById('info').textContent =
-    `I₁=${I1 >= 0 ? '+' : ''}${I1} A, I₂=${I2 >= 0 ? '+' : ''}${I2} A — ${sign} — F/L = μ₀|I₁I₂|/(2πd) = ${(FperL * 1000).toFixed(3)} mN/m`;
-
-  requestAnimationFrame(draw);
+  renderer.render(scene,cam);
+  requestAnimationFrame(loop);
 }
-
-draw();
+$('fml').innerHTML='Le fil 1 crée au niveau du fil 2 un champ <b style="color:#a32d2d">B₁ = μ₀·I₁ / (2π·d)</b>, tangent aux cercles (règle de la main droite). '+
+  'Le fil 2 y subit la force de Laplace <b style="color:#0F6E56">F/L = I₂·B₁ = μ₀·I₁·I₂ / (2π·d)</b>, avec μ₀ = 4π·10⁻⁷ T·m/A. '+
+  'Le fil 1 subit une force égale et opposée. <b style="color:#0F6E56">Même sens → attraction</b>, <b style="color:#8a5410">sens opposés → répulsion</b>.';
+requestAnimationFrame(loop);
+window.__t={set(o){if('I1'in o){I1=o.I1;$('i1').value=I1;$('i1v').textContent=fmtI(I1);}if('I2'in o){I2=o.I2;$('i2').value=I2;$('i2v').textContent=fmtI(I2);}
+  if('d'in o){dcm=o.d;$('dd').value=dcm;$('ddv').textContent=fx(dcm)+' cm';}dirty=true;},
+  view:setView,get cut(){return cut},phys,labels:()=>LABS.filter(l=>l.on).map(l=>({id:l.id,x:l.x,y:l.y,w:l.w,h:l.h}))};
+})();
 </script>
-</body>
-</html>
 </section></main>
 <aside class="sfa-side">
-  <div class="sfa-list"><h2>Magnétisme et forces électromagnétiques<span>4 simulations</span></h2><ol><li><a href="https://sfascienceforall-cell.github.io/regle-main-droite/"><i>01</i>Règle de la main droite</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/aimants-laplace/"><i>02</i>Aimants, courants et force de Laplace</a></li><li><a class="on" aria-current="page" href="https://sfascienceforall-cell.github.io/forces-magn-tique-sur-fils-/"><i>03</i>Forces entre fils parallèles</a></li><li><a href="https://sfascienceforall-cell.github.io/Cyclotron/"><i>04</i>Cyclotron</a></li></ol></div>
+  <div class="sfa-list"><h2>Magnétisme et forces électromagnétiques<span>5 simulations</span></h2><ol><li><a href="https://sfascienceforall-cell.github.io/regle-main-droite/"><i>01</i>Règle de la main droite</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/aimants-laplace/"><i>02</i>Aimants, courants et force de Laplace</a></li><li><a class="on" aria-current="page" href="https://sfascienceforall-cell.github.io/forces-magn-tique-sur-fils-/"><i>03</i>Forces entre fils parallèles</a></li><li><a href="https://sfascienceforall-cell.github.io/Cyclotron/"><i>04</i>Cyclotron</a></li><li><a href="https://sfascienceforall-cell.github.io/simulations/loi-de-lenz/"><i>05</i>Loi de Lenz : induction</a></li></ol></div>
   <div class="sfa-promo"><small>Envie d'aller plus loin ?</small><b>La prépa SFA : le cours complet, les exercices type examen corrigés et le suivi.</b><a href="https://sfascienceforall-cell.github.io/simulations/prepa/">Voir la prépa</a></div>
 </aside></div></div>
 <footer class="sfa-foot">Science For All · simulations interactives de physique</footer>
